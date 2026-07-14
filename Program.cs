@@ -17,6 +17,7 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 8;
+    options.User.RequireUniqueEmail = true;
 })
     .AddEntityFrameworkStores<appDbContext>()
     .AddDefaultTokenProviders();
@@ -31,7 +32,7 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+        c.SwaggerEndpoint("/openapi/v1.json", "My API V1");
     });
 }
 
