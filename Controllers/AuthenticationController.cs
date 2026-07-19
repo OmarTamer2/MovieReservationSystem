@@ -72,14 +72,34 @@ namespace MovieReservationSystem.Controllers
             return Ok(new { token });
         }
 
-        [HttpGet("me")]
         [Authorize]
-        public async Task<IActionResult> GetCurrentUser([FromServices] ICurrentUser currentUser)
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest model, [FromServices] ICurrentUser user)
         {
-            return Ok(new { 
-                Id = currentUser.Id,
-                Role = currentUser.role
-             });
+            if(user.Id is null)
+                return Unauthorized();
+
+            var identityUser = await _userManager.FindByIdAsync(user.Id);
+            if(identityUser is null)
+                return NotFound("User not Found");
+
+            if(model.NewPassword != model.ConfirmPassword)
+            {
+                ModelState.AddModelError("ConfirmPassword", "The new password and confirmation password do not match.");
+                return BadRequest(ModelState);
+            }
+            
+            var result = await _userManager.ChangePasswordAsync(identityUser, model.OldPassword, model.NewPassword);
+            if(!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(error.Code, error.Description);
+                }
+                return BadRequest(ModelState);
+            }
+
+            return Ok(new { message = "Password changed successfully." });
         }
  
     }
