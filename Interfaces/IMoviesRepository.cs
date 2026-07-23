@@ -1,0 +1,13 @@
+using MovieReservationSystem.Models;
+
+namespace MovieReservationSystem.Interfaces
+{
+    public interface IMoviesRepository
+    {
+        public Task<bool> AddMovieAsync(Movie movie);
+        public Task<bool> DeleteMovieAsync(Movie movie);
+        public Task<Movie?> GetMovieByIdAsync(Guid movieId);
+        public Task<List<Movie>> GetAllMoviesAsync();
+        public Task<List<Movie>> GetMoviesByGenreAsync(string genre);
+    }
+}
