@@ -234,6 +234,24 @@ namespace MovieReservationSystem.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("MovieReservationSystem.Models.Genre", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Genres");
+                });
+
             modelBuilder.Entity("MovieReservationSystem.Models.Movie", b =>
                 {
                     b.Property<Guid>("Id")
@@ -261,7 +279,7 @@ namespace MovieReservationSystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("genreId")
+                    b.Property<Guid?>("genreId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");

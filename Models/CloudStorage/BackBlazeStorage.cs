@@ -36,7 +36,7 @@ namespace MovieReservationSystem.Models.CloudStorage
             }
         }
 
-        public async Task<string?> uploadFile(FileStream fileStream, string objectKey, string contentTypem, string bucketName)
+        public async Task<string?> uploadFile(Stream fileStream, string objectKey, string contentTypem, string bucketName)
         {
             try
             {
