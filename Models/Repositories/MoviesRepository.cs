@@ -33,11 +33,9 @@ namespace MovieReservationSystem.Models.Repositories
 
         public async Task<Movie?> GetMovieByIdAsync(Guid movieId)
         {
-            var movie = await context.Movies.FirstOrDefaultAsync(m => m.Id == movieId);
-            if(movie is null)
-            {
-                return null;
-            }
+            var movie = await context.Movies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == movieId);
 
             return movie;
         }

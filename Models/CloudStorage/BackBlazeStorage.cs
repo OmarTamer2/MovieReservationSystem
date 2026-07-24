@@ -64,5 +64,18 @@ namespace MovieReservationSystem.Models.CloudStorage
             }
             
         }
+
+        public async Task<string> get_file_url(string bucket_name, string object_key)
+        {
+            var request = new GetPreSignedUrlRequest
+            {
+                BucketName = bucket_name,
+                Key = object_key,
+                Expires = DateTime.UtcNow.AddHours(1)
+            };
+
+            var url = await _s3Client.GetPreSignedURLAsync(request);
+            return url;
+        }
     }
 }
