@@ -252,6 +252,30 @@ namespace MovieReservationSystem.Migrations
                     b.ToTable("Genres");
                 });
 
+            modelBuilder.Entity("MovieReservationSystem.Models.Hall", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("numberOfSeats")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Halls");
+                });
+
             modelBuilder.Entity("MovieReservationSystem.Models.Movie", b =>
                 {
                     b.Property<Guid>("Id")
@@ -284,7 +308,87 @@ namespace MovieReservationSystem.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("genreId");
+
                     b.ToTable("Movies");
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ShowTimeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("seatId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("totalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("userId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reservations");
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.Seat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("column")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("hallId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("row")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Seats");
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.ShowTime", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("hallId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("movieId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("ticketCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShowTimes");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -336,6 +440,15 @@ namespace MovieReservationSystem.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.Movie", b =>
+                {
+                    b.HasOne("MovieReservationSystem.Models.Genre", "genre")
+                        .WithMany()
+                        .HasForeignKey("genreId");
+
+                    b.Navigation("genre");
                 });
 #pragma warning restore 612, 618
         }

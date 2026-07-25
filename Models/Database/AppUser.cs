@@ -22,7 +22,7 @@ namespace MovieReservationSystem.Models.Database
             builder.Property(u => u.FirstName).IsRequired().HasMaxLength(50);
             builder.Property(u => u.LastName).IsRequired().HasMaxLength(50);
             builder.Property(u => u.AccountType).IsRequired().HasConversion<string>();
-            builder.Property(u => u.Balance).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+            builder.Property(u => u.Balance).HasColumnType("decimal(18,2)").HasPrecision(10).HasDefaultValue(0);
         }
     }
 }
