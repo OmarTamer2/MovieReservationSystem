@@ -83,6 +83,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client(credentials, config));
 builder.Services.AddScoped<IStorageClient, BackBlazeStorage>();
 builder.Services.AddScoped<IMoviesRepository, MoviesRepository>();
+builder.Services.AddScoped<IHallRepository, HallRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddHttpContextAccessor();

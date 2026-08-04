@@ -12,6 +12,11 @@ namespace MovieReservationSystem.Models.Repositories
             return true;
         }
 
+        public async Task AddShowTime(ShowTime showTime)
+        {
+            await context.ShowTimes.AddAsync(showTime);
+        }
+
         public async Task<bool> DeleteMovieAsync(Movie movie)
         {
             try
@@ -43,6 +48,19 @@ namespace MovieReservationSystem.Models.Repositories
         public Task<List<Movie>> GetMoviesByGenreAsync(string genre)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<ShowTime> GetShowTimeByHallIdAndDate(Guid hallId, DateTime date)
+        {
+            var showtime = await context.ShowTimes.FirstOrDefaultAsync(s => s.hallId == hallId && s.date == date);
+            return showtime;
+        }
+
+        public async Task<List<ShowTime>> GetShowTimesByDate(DateOnly date)
+        {
+            var startDate = date.ToDateTime(TimeOnly.MinValue);
+            var endDate = startDate.AddDays(1);
+            return await context.ShowTimes.Where(s => s.date >= startDate && s.date < endDate).ToListAsync();
         }
     }
 }

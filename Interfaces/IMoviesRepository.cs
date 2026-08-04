@@ -9,5 +9,9 @@ namespace MovieReservationSystem.Interfaces
         public Task<Movie?> GetMovieByIdAsync(Guid movieId);
         public Task<List<Movie>> GetAllMoviesAsync();
         public Task<List<Movie>> GetMoviesByGenreAsync(string genre);
+        public Task<ShowTime> GetShowTimeByHallIdAndDate(Guid hallId, DateTime date);
+        public Task<List<ShowTime>> GetShowTimesByDate(DateOnly date);
+        public Task AddShowTime(ShowTime showTime);
+
     }
 }

@@ -13,12 +13,14 @@ namespace MovieReservationSystem.Controllers
     {
         private readonly IStorageClient _storageClient;
         private readonly IMoviesRepository _moviesRepository;
+        private readonly IHallRepository _hallRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public MoviesController(IStorageClient storageClient, IMoviesRepository moviesRepository, IUnitOfWork unitOfWork)
+        public MoviesController(IStorageClient storageClient, IMoviesRepository moviesRepository, IHallRepository hallRepository, IUnitOfWork unitOfWork)
         {
             _storageClient = storageClient;
             _moviesRepository = moviesRepository;
+            _hallRepository = hallRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -106,6 +108,64 @@ namespace MovieReservationSystem.Controllers
             }
             return Ok(movieDtos);
         }
+
+        [HttpPost("showtime")]
+        public async Task<IActionResult> AddShowTime([FromBody] CreateShowTimeRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            
+            if(request.startTime.CompareTo(DateTime.UtcNow) < 0)
+            {
+                return BadRequest("Invalid start time. Only future dates are allowed.");
+            }
+            
+            var conflictShowTime = await _moviesRepository.GetShowTimeByHallIdAndDate(request.hallId, request.startTime);
+
+            if(conflictShowTime is not null)
+            {
+                return BadRequest("Showtime conflict detected for the specified hall and date.");
+            }
+
+            var hall = await _hallRepository.GetHallByIdAsync(request.hallId);
+
+            if(hall is null)
+            {
+                return NotFound("Specified hall does not exist.");
+            }
+
+            var showTime = new ShowTime
+            {
+                hallId = request.hallId,
+                movieId = request.movieId,
+                date = request.startTime,
+                ticketCost = request.TicketCost
+            };
+
+            await _moviesRepository.AddShowTime(showTime);
+            await _unitOfWork.SaveChangesAsync();
+
+            return Created();
+        }
         
+        [HttpGet("showtime")]
+        public async Task<IActionResult> GetShowTimesByDate([FromQuery] DateOnly date)
+        {
+            if (date.CompareTo(DateTime.UtcNow.Date) < 0)
+            {
+                return BadRequest("Invalid date. Only future dates are allowed.");
+            }
+
+            var showTimes = await _moviesRepository.GetShowTimesByDate(date);
+
+            if (showTimes == null || !showTimes.Any())
+            {
+                return NotFound("No showtimes found for the specified date.");
+            }
+
+            return Ok(showTimes);
+        }
     }
 }
