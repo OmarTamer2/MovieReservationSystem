@@ -8,7 +8,8 @@ namespace MovieReservationSystem.Models
     {
         public Guid movieId { get; set; }
         public Guid hallId { get; set; }
-        public DateTime date { get; set; }
+        public DateTime startTime { get; set; }
+        public DateTime endTime { get; set; }
         public decimal ticketCost { get; set; }
     }
 

@@ -322,6 +322,9 @@ namespace MovieReservationSystem.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ShowTimeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -362,6 +365,8 @@ namespace MovieReservationSystem.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("hallId");
+
                     b.ToTable("Seats");
                 });
 
@@ -374,7 +379,7 @@ namespace MovieReservationSystem.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("date")
+                    b.Property<DateTime>("endTime")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("hallId")
@@ -382,6 +387,9 @@ namespace MovieReservationSystem.Migrations
 
                     b.Property<Guid>("movieId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("startTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("ticketCost")
                         .HasColumnType("decimal(18,2)");
@@ -449,6 +457,22 @@ namespace MovieReservationSystem.Migrations
                         .HasForeignKey("genreId");
 
                     b.Navigation("genre");
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.Seat", b =>
+                {
+                    b.HasOne("MovieReservationSystem.Models.Hall", "hall")
+                        .WithMany("seats")
+                        .HasForeignKey("hallId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("hall");
+                });
+
+            modelBuilder.Entity("MovieReservationSystem.Models.Hall", b =>
+                {
+                    b.Navigation("seats");
                 });
 #pragma warning restore 612, 618
         }

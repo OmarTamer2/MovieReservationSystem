@@ -116,13 +116,20 @@ namespace MovieReservationSystem.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            var startTime = new DateTime(DateTime.UtcNow.Year, request.month, request.day, request.hour, request.minutes, 0);
             
-            if(request.startTime.CompareTo(DateTime.UtcNow) < 0)
+            if(startTime.CompareTo(DateTime.UtcNow) < 0)
             {
                 return BadRequest("Invalid start time. Only future dates are allowed.");
             }
+
+            var movie = await _moviesRepository.GetMovieByIdAsync(request.movieId);
+            if(movie is null) return NotFound("This movie doesn't exist");
+
+            var movieDuration = movie.Duration;
             
-            var conflictShowTime = await _moviesRepository.GetShowTimeByHallIdAndDate(request.hallId, request.startTime);
+            var conflictShowTime = await _moviesRepository.CheckConflictingShowTimes(request.hallId, startTime, movieDuration);
 
             if(conflictShowTime is not null)
             {
@@ -136,11 +143,13 @@ namespace MovieReservationSystem.Controllers
                 return NotFound("Specified hall does not exist.");
             }
 
+            var endTime = startTime.AddMinutes(movieDuration + 20);
             var showTime = new ShowTime
             {
                 hallId = request.hallId,
                 movieId = request.movieId,
-                date = request.startTime,
+                startTime = startTime,
+                endTime = endTime,
                 ticketCost = request.TicketCost
             };
 
@@ -151,9 +160,25 @@ namespace MovieReservationSystem.Controllers
         }
         
         [HttpGet("showtime")]
-        public async Task<IActionResult> GetShowTimesByDate([FromQuery] DateOnly date)
+        public async Task<IActionResult> GetShowTimesByDate([FromQuery] int year, [FromQuery] int month, [FromQuery] int day)
         {
-            if (date.CompareTo(DateTime.UtcNow.Date) < 0)
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            DateOnly date;
+            try
+            {
+                date = new DateOnly(year, month, day);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return BadRequest("Invalid date parameters.");
+            }
+            
+            var currentDate = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day);
+            if (date.CompareTo(currentDate) < 0)
             {
                 return BadRequest("Invalid date. Only future dates are allowed.");
             }

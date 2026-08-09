@@ -9,6 +9,7 @@ namespace MovieReservationSystem.Models
         public int row { get; set; }
         public int column { get; set; }
         public Guid hallId { get; set; }
+        public Hall? hall { get; set; }
     }
 
 

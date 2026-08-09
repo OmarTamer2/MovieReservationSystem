@@ -1,4 +1,5 @@
 
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MovieReservationSystem.Enums;
@@ -8,6 +9,7 @@ namespace MovieReservationSystem.Models
 {
     public class Reservation : BaseEntity
     {
+        public Guid IdempotencyKey { get; set; }
         public Guid userId { get; set; }
         public Guid seatId { get; set; }
         public Guid ShowTimeId { get; set; }
@@ -31,19 +33,19 @@ namespace MovieReservationSystem.Models
             .WithMany()
             .HasForeignKey(r => r.seatId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
             builder
             .HasOne<ShowTime>()
             .WithMany()
             .HasForeignKey(r => r.ShowTimeId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(r => r.status).HasConversion<string>();
 
-            builder.HasIndex(["ShowTimeId", "seatId"]);
-
+            builder.HasIndex(r => new { r.seatId, r.ShowTimeId }).IsUnique();
+            builder.HasIndex(r => r.IdempotencyKey).IsUnique();
         }
     }
 }

@@ -50,17 +50,18 @@ namespace MovieReservationSystem.Models.Repositories
             throw new NotImplementedException();
         }
 
-        public async Task<ShowTime> GetShowTimeByHallIdAndDate(Guid hallId, DateTime date)
+        public async Task<ShowTime> CheckConflictingShowTimes(Guid hallId, DateTime date, int movieDuration)
         {
-            var showtime = await context.ShowTimes.FirstOrDefaultAsync(s => s.hallId == hallId && s.date == date);
-            return showtime;
+            var endTime = date.AddMinutes(movieDuration + 20);
+            var showtime = await context.ShowTimes.FirstOrDefaultAsync(s => s.hallId == hallId && s.startTime < endTime && s.endTime > date);
+            return showtime!;
         }
 
         public async Task<List<ShowTime>> GetShowTimesByDate(DateOnly date)
         {
             var startDate = date.ToDateTime(TimeOnly.MinValue);
             var endDate = startDate.AddDays(1);
-            return await context.ShowTimes.Where(s => s.date >= startDate && s.date < endDate).ToListAsync();
+            return await context.ShowTimes.Where(s => s.startTime >= startDate && s.startTime < endDate).ToListAsync();
         }
     }
 }
