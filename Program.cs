@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +12,7 @@ using MovieReservationSystem.Models.Repositories;
 using MovieReservationSystem.Models.UnitOfWork;
 using MovieReservationSystem.Repositories;
 using Scalar.AspNetCore;
+using YourApp.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +40,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<BearerSecurityOperationTransformer>();
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 builder.Services.AddAuthorization();
 
 var JwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -88,6 +90,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddAuthorization();
 var app = builder.Build();
 

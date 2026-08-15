@@ -59,5 +59,21 @@ namespace MovieReservationSystem.Controllers
 
             return Created();
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllHalls()
+        {
+            var halls = await _hallRepository.GetAllHallsAsync();
+            return Ok(halls);
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetHallById([FromRoute] Guid id)
+        {
+            var hall = await _hallRepository.GetHallByIdAsync(id);
+            if(hall is null) return NotFound();
+
+            return Ok(hall);
+        }
     }
 }

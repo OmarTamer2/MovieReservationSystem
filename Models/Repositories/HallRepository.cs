@@ -23,7 +23,7 @@ namespace MovieReservationSystem.Models.Repositories
 
         public async Task<Hall?> GetHallByIdAsync(Guid hallId)
         {
-            return await context.Halls.FirstOrDefaultAsync(h => h.Id == hallId);
+            return await context.Halls.Include(x => x.seats).FirstOrDefaultAsync(h => h.Id == hallId);
         }
     }
 }
