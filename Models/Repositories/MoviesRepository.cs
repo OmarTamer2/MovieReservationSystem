@@ -12,6 +12,11 @@ namespace MovieReservationSystem.Models.Repositories
             return true;
         }
 
+        public async Task AddShowTime(ShowTime showTime)
+        {
+            await context.ShowTimes.AddAsync(showTime);
+        }
+
         public async Task<bool> DeleteMovieAsync(Movie movie)
         {
             try
@@ -33,11 +38,9 @@ namespace MovieReservationSystem.Models.Repositories
 
         public async Task<Movie?> GetMovieByIdAsync(Guid movieId)
         {
-            var movie = await context.Movies.FirstOrDefaultAsync(m => m.Id == movieId);
-            if(movie is null)
-            {
-                return null;
-            }
+            var movie = await context.Movies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == movieId);
 
             return movie;
         }
@@ -45,6 +48,20 @@ namespace MovieReservationSystem.Models.Repositories
         public Task<List<Movie>> GetMoviesByGenreAsync(string genre)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<ShowTime> CheckConflictingShowTimes(Guid hallId, DateTime date, int movieDuration)
+        {
+            var endTime = date.AddMinutes(movieDuration + 20);
+            var showtime = await context.ShowTimes.FirstOrDefaultAsync(s => s.hallId == hallId && s.startTime < endTime && s.endTime > date);
+            return showtime!;
+        }
+
+        public async Task<List<ShowTime>> GetShowTimesByDate(DateOnly date)
+        {
+            var startDate = date.ToDateTime(TimeOnly.MinValue);
+            var endDate = startDate.AddDays(1);
+            return await context.ShowTimes.Where(s => s.startTime >= startDate && s.startTime < endDate).ToListAsync();
         }
     }
 }
