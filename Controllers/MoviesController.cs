@@ -26,18 +26,18 @@ namespace MovieReservationSystem.Controllers
 
         [HttpPost("AddMovie")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request)
+        public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var fileStream = request.Photo.OpenReadStream();
+            using var fileStream = request.Photo.OpenReadStream();
             var fileContentType = request.Photo.ContentType;
             var name = Guid.NewGuid().ToString();
 
-            var result = await _storageClient.uploadFile(fileStream, name, fileContentType, Buckets.posters);
+            var result = await _storageClient.uploadFile(fileStream, name, fileContentType, Buckets.posters, cancellationToken);
 
             if(result is null)
             {
