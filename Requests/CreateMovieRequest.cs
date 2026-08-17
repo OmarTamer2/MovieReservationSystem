@@ -16,7 +16,7 @@ namespace MovieReservationSystem.Requests
         public string? Genre { get; set; } = "";
         [Required]
         [DataType(DataType.Date)]
-        public DateTime ReleaseDate { get; set; }
+        public DateOnly ReleaseDate { get; set; }
         [Required]
         public int Duration { get; set; }
     }

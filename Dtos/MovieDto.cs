@@ -7,7 +7,7 @@ namespace MovieReservationSystem.Dtos
         public string Title { get; set; } = "";
         public string PhotoUrl { get; set; } = "";
         public string Description { get; set; } = "";
-        public DateTime ReleaseDate { get; set; }
+        public DateOnly ReleaseDate { get; set; }
         public int Duration { get; set; }
 
         public string? genre {get; set;} = "";
