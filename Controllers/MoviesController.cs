@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MovieReservationSystem.Constants;
 using MovieReservationSystem.Dtos;
@@ -24,7 +25,7 @@ namespace MovieReservationSystem.Controllers
             _unitOfWork = unitOfWork;
         }
 
-        [HttpPost("AddMovie")]
+        [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request, CancellationToken cancellationToken = default)
         {
@@ -109,7 +110,8 @@ namespace MovieReservationSystem.Controllers
             return Ok(movieDtos);
         }
 
-        [HttpPost("showtime")]
+        [Authorize]
+        [HttpPost("/api/showtime")]
         public async Task<IActionResult> AddShowTime([FromBody] CreateShowTimeRequest request)
         {
             if (!ModelState.IsValid)
@@ -159,7 +161,8 @@ namespace MovieReservationSystem.Controllers
             return Created();
         }
         
-        [HttpGet("showtime")]
+        [Authorize]
+        [HttpGet("/api/showtime")]
         public async Task<IActionResult> GetShowTimesByDate([FromQuery] int year, [FromQuery] int month, [FromQuery] int day)
         {
             if (!ModelState.IsValid)
@@ -191,6 +194,33 @@ namespace MovieReservationSystem.Controllers
             }
 
             return Ok(showTimes);
+        }
+
+        [Authorize]
+        [HttpGet("/api/showtime/{showTimeId:guid}")]
+        public async Task<IActionResult> GetShowTimeReservationById([FromRoute] Guid showTimeId)
+        {
+            var showTime = await _moviesRepository.GetShowTimeById(showTimeId);
+            if (showTime is null)
+            {
+                return NotFound("Showtime not found.");
+            }
+
+            var hall = await _hallRepository.GetHallByIdAsync(showTime.hallId);
+            if (hall is null)
+            {
+                return NotFound("Hall not found.");
+            }
+
+            var BookedSeatsIds = await _hallRepository.GetReservedSeatsByShowTimeId(showTimeId);
+            var bookedSeats = await _hallRepository.GetSeatsByIdsAsync(BookedSeatsIds);
+            
+            var availableSeats = hall.seats!.Where(s => !BookedSeatsIds.Contains(s.Id)).ToList();
+            return Ok(new HallReservationMap
+            {
+                Booked = bookedSeats,
+                Available = availableSeats
+            });
         }
     }
 }

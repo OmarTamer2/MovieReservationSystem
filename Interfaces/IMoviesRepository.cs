@@ -12,6 +12,8 @@ namespace MovieReservationSystem.Interfaces
         public Task<ShowTime> CheckConflictingShowTimes(Guid hallId, DateTime date, int movieDuration);
         public Task<List<ShowTime>> GetShowTimesByDate(DateOnly date);
         public Task AddShowTime(ShowTime showTime);
+        public Task<ShowTime?> GetShowTimeById(Guid showTimeId);
+        public Task<List<ShowTime>> GetShowTimesByIds(List<Guid> showTimeIds);
 
     }
 }

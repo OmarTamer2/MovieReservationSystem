@@ -63,5 +63,15 @@ namespace MovieReservationSystem.Models.Repositories
             var endDate = startDate.AddDays(1);
             return await context.ShowTimes.Where(s => s.startTime >= startDate && s.startTime < endDate).ToListAsync();
         }
+
+        public async Task<ShowTime?> GetShowTimeById(Guid showTimeId)
+        {
+            return await context.ShowTimes.FindAsync(showTimeId);
+        }
+
+        public Task<List<ShowTime>> GetShowTimesByIds(List<Guid> showTimeIds)
+        {
+            return context.ShowTimes.Where(s => showTimeIds.Contains(s.Id)).ToListAsync();
+        }
     }
 }
