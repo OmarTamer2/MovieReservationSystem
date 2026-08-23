@@ -102,5 +102,59 @@ namespace MovieReservationSystem.Controllers
             return Ok(new { message = "Password changed successfully." });
         }
  
+        [Authorize]
+        [HttpPost("registerAdmin")]
+        public async Task<IActionResult> CreateAdmin([FromBody] RegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = new AppUser
+            {
+                UserName = request.UserName,
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                AccountType = AccountType.User
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return BadRequest(ModelState);
+            }
+
+            return Ok(new { message = "Admin registered successfully." });
+        }
+
+        [HttpPost("ChargeBalance")]
+        public async Task<IActionResult> ChargeBalance(decimal Amount, [FromServices] ICurrentUser user)
+        {
+            if(user.Id is null)
+                return Unauthorized();
+
+            var identityUser = await _userManager.FindByIdAsync(user.Id);
+            if(identityUser is null)
+                return NotFound("User not Found");
+
+            identityUser.Balance += Amount;
+            var result = await _userManager.UpdateAsync(identityUser);
+            if(!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(error.Code, error.Description);
+                }
+                return BadRequest(ModelState);
+            }
+
+            return Ok(new { message = "Balance charged successfully." });
+        }
     }
 }
