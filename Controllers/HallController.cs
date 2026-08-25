@@ -200,13 +200,14 @@ namespace MovieReservationSystem.Controllers
             var showTimes = await _movieRepository.GetShowTimesByIds(reservations.Select(r => r.ShowTimeId).ToList());
 
             List<ReservationDto> reservationDtos = new List<ReservationDto>();
+            var showTimesDict = showTimes.ToDictionary(st => st.Id, st => st);
             for( int i = 0; i < reservations.Count; i++)
             {
                 var reservationDto = new ReservationDto
                 {
                     Id = reservations[i].Id,
                     seatId = reservations[i].seatId,
-                    Time = showTimes[i].startTime,
+                    Time = showTimesDict[reservations[i].ShowTimeId].startTime,
                     status = reservations[i].status,
                     totalAmount = reservations[i].totalAmount
                 };

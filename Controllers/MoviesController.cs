@@ -216,10 +216,26 @@ namespace MovieReservationSystem.Controllers
             var bookedSeats = await _hallRepository.GetSeatsByIdsAsync(BookedSeatsIds);
             
             var availableSeats = hall.seats!.Where(s => !BookedSeatsIds.Contains(s.Id)).ToList();
+            var bookedSeatsDto = bookedSeats.Select(s => new SeatDto
+            {
+                Id = s.Id,
+                row = s.row,
+                column = s.column,
+                hallId = s.hallId
+            }).ToList();
+
+            var availableSeatsDto = availableSeats.Select(s => new SeatDto
+            {
+                Id = s.Id,
+                row = s.row,
+                column = s.column,
+                hallId = s.hallId
+            }).ToList();
+            
             return Ok(new HallReservationMap
             {
-                Booked = bookedSeats,
-                Available = availableSeats
+                Booked = bookedSeatsDto,
+                Available = availableSeatsDto
             });
         }
     }
