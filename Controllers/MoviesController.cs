@@ -26,6 +26,7 @@ namespace MovieReservationSystem.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request, CancellationToken cancellationToken = default)
         {
@@ -64,6 +65,7 @@ namespace MovieReservationSystem.Controllers
             return BadRequest("Movie Addition Failed");
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetMovieById([FromRoute] Guid id)
         {
@@ -85,6 +87,23 @@ namespace MovieReservationSystem.Controllers
             return Ok(movieDto);
         }
 
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteMovie([FromRoute] Guid id)
+        {
+            var movie = await _moviesRepository.GetMovieByIdAsync(id);
+            if(movie is null) return NotFound();
+
+            var IsSuccess = await _moviesRepository.DeleteMovieAsync(movie);
+            if(IsSuccess)
+            {
+                await _unitOfWork.SaveChangesAsync();
+                return NoContent();
+            }
+
+            return BadRequest("Movie Deletion Failed");
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllMovies()
         {
@@ -110,7 +129,7 @@ namespace MovieReservationSystem.Controllers
             return Ok(movieDtos);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPost("/api/showtime")]
         public async Task<IActionResult> AddShowTime([FromBody] CreateShowTimeRequest request)
         {

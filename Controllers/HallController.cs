@@ -28,6 +28,7 @@ namespace MovieReservationSystem.Controllers
             _userManager = userManager;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateHall([FromBody] CreateHallRequest request)
         {
@@ -71,6 +72,7 @@ namespace MovieReservationSystem.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllHalls()
         {
             var halls = await _hallRepository.GetAllHallsAsync();
@@ -108,6 +110,7 @@ namespace MovieReservationSystem.Controllers
         [HttpPost("{hallId:guid}")]
         public async Task<IActionResult> MakeReservation([FromBody] MakeReservationRequest request)
         {
+            
             if(_currentUser.Id is null)
             {
                 return Unauthorized("User is not authenticated.");
@@ -147,6 +150,11 @@ namespace MovieReservationSystem.Controllers
                 return NotFound("Showtime not found.");
             }
 
+            if(DateTime.UtcNow.CompareTo(showTimeExists.startTime) >= 0)
+            {
+                return BadRequest("Cannot make a reservation for a showtime that has already started.");
+            }
+
             var seats = await _hallRepository.GetSeatsByIdsAsync(SeatIds);
             if(seats.Count != SeatIds.Count)
             {
@@ -180,6 +188,7 @@ namespace MovieReservationSystem.Controllers
                 reservations.Add(reservation);
             }
             
+            user.Balance -= showTimeExists.ticketCost * SeatIds.Count;
             await _hallRepository.AddReservations(reservations);
             await _unitOfWork.SaveChangesAsync();
             

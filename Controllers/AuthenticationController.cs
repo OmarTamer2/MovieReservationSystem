@@ -102,7 +102,7 @@ namespace MovieReservationSystem.Controllers
             return Ok(new { message = "Password changed successfully." });
         }
  
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPost("registerAdmin")]
         public async Task<IActionResult> CreateAdmin([FromBody] RegisterRequest request)
         {
@@ -117,7 +117,7 @@ namespace MovieReservationSystem.Controllers
                 Email = request.Email,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                AccountType = AccountType.User
+                AccountType = AccountType.Admin
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -130,9 +130,20 @@ namespace MovieReservationSystem.Controllers
                 return BadRequest(ModelState);
             }
 
+            var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            if (!roleResult.Succeeded)
+            {
+                foreach (var error in roleResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return BadRequest(ModelState);
+            }
+
             return Ok(new { message = "Admin registered successfully." });
         }
 
+        [Authorize]
         [HttpPost("ChargeBalance")]
         public async Task<IActionResult> ChargeBalance(decimal Amount, [FromServices] ICurrentUser user)
         {
