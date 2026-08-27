@@ -35,10 +35,16 @@ namespace MovieReservationSystem.Models.Repositories
             await context.Genres.AddAsync(genre);
         }
 
-        public async Task<List<Movie>> GetAllMoviesAsync()
+        public async Task<List<Movie>> GetAllMoviesAsync(Guid? genre)
         {
-            var movies = await context.Movies.ToListAsync();
-            return movies;
+            var movies = context.Movies.AsQueryable();
+
+            if (genre is not null || genre != Guid.Empty)
+            {
+                movies = movies.Where(m => m.genreId == genre);
+            }
+            
+            return await movies.ToListAsync();
         }
 
         public async Task<Movie?> GetMovieByIdAsync(Guid movieId)

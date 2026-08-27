@@ -120,9 +120,20 @@ namespace MovieReservationSystem.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<IActionResult> GetAllMovies()
+        public async Task<IActionResult> GetAllMovies([FromQuery] string? genreName = "")
         {
-            var movies = await _moviesRepository.GetAllMoviesAsync();
+            Genre? genre = null;
+            if (!string.IsNullOrWhiteSpace(genreName))
+            {
+                genre = await _moviesRepository.GetGenreByNameAsync(genreName);
+
+                if(genre is null)
+                {
+                    return BadRequest("This genre doesn't exist");
+                }
+            }
+
+            var movies = await _moviesRepository.GetAllMoviesAsync(genre == null ? null : genre.Id);
 
             var movieDtos = new List<MovieDto>();
             foreach(var movie in movies)

@@ -7,7 +7,7 @@ namespace MovieReservationSystem.Interfaces
         public Task<bool> AddMovieAsync(Movie movie);
         public Task<bool> DeleteMovieAsync(Movie movie);
         public Task<Movie?> GetMovieByIdAsync(Guid movieId);
-        public Task<List<Movie>> GetAllMoviesAsync();
+        public Task<List<Movie>> GetAllMoviesAsync(Guid? genre);
         public Task<List<Movie>> GetMoviesByGenreAsync(string genre);
         public Task<ShowTime> CheckConflictingShowTimes(Guid hallId, DateTime date, int movieDuration);
         public Task<List<ShowTime>> GetShowTimesByDate(DateOnly date);
