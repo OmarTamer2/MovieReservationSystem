@@ -107,95 +107,6 @@ namespace MovieReservationSystem.Controllers
         }
 
         [Authorize]
-        [HttpPost("{hallId:guid}")]
-        public async Task<IActionResult> MakeReservation([FromBody] MakeReservationRequest request)
-        {
-            
-            if(_currentUser.Id is null)
-            {
-                return Unauthorized("User is not authenticated.");
-            }
-
-            var user = await _userManager.FindByIdAsync(_currentUser.Id);
-            if (user is null)
-            {
-                return Unauthorized("User not found.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if(_currentUser.Id is null)
-            {
-                return Unauthorized("User is not authenticated.");
-            }
-
-            var SeatIds = request.SeatIds?.Split(',').Select(Guid.Parse).ToList();
-            if (SeatIds is null || !SeatIds.Any())
-            {
-                return BadRequest("No seat IDs provided.");
-            }
-
-            var dublicateReservation = await _hallRepository.GetReservationByIdempotencyKey(request.IdempotencyKey);
-            if (dublicateReservation is not null)
-            {
-                return Conflict("A reservation with the same idempotency key already exists.");
-            }
-
-            var showTimeExists = await _movieRepository.GetShowTimeById(request.ShowTimeId);
-            if (showTimeExists is null)
-            {
-                return NotFound("Showtime not found.");
-            }
-
-            if(DateTime.UtcNow.CompareTo(showTimeExists.startTime) >= 0)
-            {
-                return BadRequest("Cannot make a reservation for a showtime that has already started.");
-            }
-
-            var seats = await _hallRepository.GetSeatsByIdsAsync(SeatIds);
-            if(seats.Count != SeatIds.Count)
-            {
-                return NotFound("One or more seats not found.");
-            }
-
-            var ConflictingReservation = await _hallRepository.GetReservationByShowTimeIdAndSeatIdsAsync(request.ShowTimeId, SeatIds);
-            if (ConflictingReservation is not null)
-            {
-                return Conflict("one or more seats is already reserved for the specified showtime.");
-            }
-
-            if(user.Balance < showTimeExists.ticketCost * SeatIds.Count)
-            {
-                return BadRequest("Insufficient balance to make the reservation.");
-            }
-            
-            List<Reservation> reservations = new List<Reservation>();
-            foreach(var seat in seats)
-            {
-                var reservation = new Reservation
-                {
-                    seatId = seat.Id,
-                    ShowTimeId = request.ShowTimeId,
-                    IdempotencyKey = request.IdempotencyKey,
-                    userId = Guid.Parse(_currentUser.Id),
-                    status = Enums.ReservationStatus.Confirmed,
-                    totalAmount = showTimeExists.ticketCost
-                };
-
-                reservations.Add(reservation);
-            }
-            
-            user.Balance -= showTimeExists.ticketCost * SeatIds.Count;
-            await _hallRepository.AddReservations(reservations);
-            await _unitOfWork.SaveChangesAsync();
-            
-            return Created();
-        }
-
-        [Authorize]
         [HttpGet("/api/reservations")]
         public async Task<IActionResult> GetAllUserReservations()
         {
@@ -275,6 +186,7 @@ namespace MovieReservationSystem.Controllers
             return Ok("Reservation cancelled successfully.");
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("/api/admin/reservations")]
         public async Task<IActionResult> GetAllReservations()
         {
@@ -282,13 +194,14 @@ namespace MovieReservationSystem.Controllers
             var showTimes = await _movieRepository.GetShowTimesByIds(reservations.Select(r => r.ShowTimeId).ToList());
 
             List<ReservationDto> reservationDtos = new List<ReservationDto>();
+            var showTimesDict = showTimes.ToDictionary(st => st.Id, st => st);
             for( int i = 0; i < reservations.Count; i++)
             {
                 var reservationDto = new ReservationDto
                 {
                     Id = reservations[i].Id,
                     seatId = reservations[i].seatId,
-                    Time = showTimes[i].startTime,
+                    Time = showTimesDict[reservations[i].ShowTimeId].startTime,
                     status = reservations[i].status,
                     totalAmount = reservations[i].totalAmount
                 };

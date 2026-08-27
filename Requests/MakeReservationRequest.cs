@@ -14,7 +14,5 @@ namespace MovieReservationSystem.Requests
         public string? SeatIds { get; set; }
         [Required]
         public Guid IdempotencyKey { get; set; }
-        [Required]
-        public Guid ShowTimeId { get; set; }
     }
 }
