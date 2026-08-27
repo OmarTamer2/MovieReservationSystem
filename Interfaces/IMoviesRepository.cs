@@ -14,6 +14,8 @@ namespace MovieReservationSystem.Interfaces
         public Task AddShowTime(ShowTime showTime);
         public Task<ShowTime?> GetShowTimeById(Guid showTimeId);
         public Task<List<ShowTime>> GetShowTimesByIds(List<Guid> showTimeIds);
+        Task AddGenreAsync(Genre genre);
+        Task<Genre?> GetGenreByNameAsync(string genreName);
 
     }
 }

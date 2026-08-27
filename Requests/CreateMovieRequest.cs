@@ -19,5 +19,7 @@ namespace MovieReservationSystem.Requests
         public DateOnly ReleaseDate { get; set; }
         [Required]
         public int Duration { get; set; }
+        [Required]
+        public string genre{ get; set; } = "";
     }
 }

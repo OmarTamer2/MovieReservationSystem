@@ -9,8 +9,6 @@ namespace MovieReservationSystem.Requests
     public class MakeReservationRequest
     {
         [Required]
-        public Guid MovieId { get; set; }
-        [Required]
         public string? SeatIds { get; set; }
         [Required]
         public Guid IdempotencyKey { get; set; }

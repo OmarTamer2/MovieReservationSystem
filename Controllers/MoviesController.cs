@@ -53,13 +53,21 @@ namespace MovieReservationSystem.Controllers
                 return BadRequest("Poster Upload Failed");
             }
 
+            var genre = await _moviesRepository.GetGenreByNameAsync(request.Genre!);
+            if(genre is null)
+            {
+                return NotFound("Genre not found. Please add the genre first.");
+            }
+
             var movie = new Movie
             {
                 Title = request.Title,
                 PhotoUrl = name,
                 Description = request.Description,
                 ReleaseDate = request.ReleaseDate,
-                Duration = request.Duration
+                Duration = request.Duration,
+                genre = genre,
+                genreId = genre.Id
             };
 
             var IsSuccess = await _moviesRepository.AddMovieAsync(movie);
@@ -346,6 +354,26 @@ namespace MovieReservationSystem.Controllers
             await _hallRepository.AddReservations(reservations);
             await _unitOfWork.SaveChangesAsync();
             
+            return Created();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("/api/genre")]
+        public async Task<IActionResult> AddGenre([FromBody] CreateGenreRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var genre = new Genre
+            {
+                Name = request.GenreName
+            };
+
+            await _moviesRepository.AddGenreAsync(genre);
+
+            await _unitOfWork.SaveChangesAsync();
             return Created();
         }
     }
