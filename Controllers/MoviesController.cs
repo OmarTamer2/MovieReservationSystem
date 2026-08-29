@@ -53,7 +53,7 @@ namespace MovieReservationSystem.Controllers
                 return BadRequest("Poster Upload Failed");
             }
 
-            var genre = await _moviesRepository.GetGenreByNameAsync(request.Genre!);
+            var genre = await _moviesRepository.GetGenreByNameAsync(request.genre!);
             if(genre is null)
             {
                 return NotFound("Genre not found. Please add the genre first.");
@@ -147,7 +147,8 @@ namespace MovieReservationSystem.Controllers
                     PhotoUrl = viewUrl,
                     ReleaseDate = movie.ReleaseDate,
                     Description = movie.Description,
-                    Duration = movie.Duration
+                    Duration = movie.Duration,
+                    genre = movie.genre == null ? "" : movie.genre.Name
                 };
 
                 movieDtos.Add(movieDto);

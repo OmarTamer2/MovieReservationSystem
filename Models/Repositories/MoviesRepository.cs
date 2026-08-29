@@ -39,7 +39,7 @@ namespace MovieReservationSystem.Models.Repositories
         {
             var movies = context.Movies.AsQueryable();
 
-            if (genre is not null || genre != Guid.Empty)
+            if (genre is not null)
             {
                 movies = movies.Where(m => m.genreId == genre);
             }
