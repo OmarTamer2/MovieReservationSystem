@@ -30,10 +30,21 @@ namespace MovieReservationSystem.Models.Repositories
             }
         }
 
-        public async Task<List<Movie>> GetAllMoviesAsync()
+        public async Task AddGenreAsync(Genre genre)
         {
-            var movies = await context.Movies.ToListAsync();
-            return movies;
+            await context.Genres.AddAsync(genre);
+        }
+
+        public async Task<List<Movie>> GetAllMoviesAsync(Guid? genre)
+        {
+            var movies = context.Movies.AsQueryable();
+
+            if (genre is not null)
+            {
+                movies = movies.Where(m => m.genreId == genre);
+            }
+            
+            return await movies.ToListAsync();
         }
 
         public async Task<Movie?> GetMovieByIdAsync(Guid movieId)
@@ -62,6 +73,21 @@ namespace MovieReservationSystem.Models.Repositories
             var startDate = date.ToDateTime(TimeOnly.MinValue);
             var endDate = startDate.AddDays(1);
             return await context.ShowTimes.Where(s => s.startTime >= startDate && s.startTime < endDate).ToListAsync();
+        }
+
+        public async Task<ShowTime?> GetShowTimeById(Guid showTimeId)
+        {
+            return await context.ShowTimes.FindAsync(showTimeId);
+        }
+
+        public Task<List<ShowTime>> GetShowTimesByIds(List<Guid> showTimeIds)
+        {
+            return context.ShowTimes.Where(s => showTimeIds.Contains(s.Id)).ToListAsync();
+        }
+
+        public Task<Genre?> GetGenreByNameAsync(string genreName)
+        {
+            return context.Genres.FirstOrDefaultAsync(g => g.Name == genreName);
         }
     }
 }

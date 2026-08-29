@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MovieReservationSystem.Constants;
 using MovieReservationSystem.Dtos;
 using MovieReservationSystem.Interfaces;
 using MovieReservationSystem.Models;
+using MovieReservationSystem.Models.Database;
 using MovieReservationSystem.Requests;
 
 namespace MovieReservationSystem.Controllers
@@ -15,33 +18,45 @@ namespace MovieReservationSystem.Controllers
         private readonly IMoviesRepository _moviesRepository;
         private readonly IHallRepository _hallRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUser _currentUser;
+        private readonly UserManager<AppUser> _userManager;
 
-        public MoviesController(IStorageClient storageClient, IMoviesRepository moviesRepository, IHallRepository hallRepository, IUnitOfWork unitOfWork)
+        public MoviesController(IStorageClient storageClient, IMoviesRepository moviesRepository, IHallRepository hallRepository,
+         IUnitOfWork unitOfWork, ICurrentUser currentUser, UserManager<AppUser> userManager)
         {
             _storageClient = storageClient;
             _moviesRepository = moviesRepository;
             _hallRepository = hallRepository;
             _unitOfWork = unitOfWork;
+            _currentUser = currentUser;
+            _userManager = userManager;
         }
 
-        [HttpPost("AddMovie")]
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request)
+        public async Task<IActionResult> AddMovie([FromForm] CreateMovieRequest request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var fileStream = request.Photo.OpenReadStream();
+            using var fileStream = request.Photo.OpenReadStream();
             var fileContentType = request.Photo.ContentType;
             var name = Guid.NewGuid().ToString();
 
-            var result = await _storageClient.uploadFile(fileStream, name, fileContentType, Buckets.posters);
+            var result = await _storageClient.uploadFile(fileStream, name, fileContentType, Buckets.posters, cancellationToken);
 
             if(result is null)
             {
                 return BadRequest("Poster Upload Failed");
+            }
+
+            var genre = await _moviesRepository.GetGenreByNameAsync(request.genre!);
+            if(genre is null)
+            {
+                return NotFound("Genre not found. Please add the genre first.");
             }
 
             var movie = new Movie
@@ -50,7 +65,9 @@ namespace MovieReservationSystem.Controllers
                 PhotoUrl = name,
                 Description = request.Description,
                 ReleaseDate = request.ReleaseDate,
-                Duration = request.Duration
+                Duration = request.Duration,
+                genre = genre,
+                genreId = genre.Id
             };
 
             var IsSuccess = await _moviesRepository.AddMovieAsync(movie);
@@ -63,6 +80,7 @@ namespace MovieReservationSystem.Controllers
             return BadRequest("Movie Addition Failed");
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetMovieById([FromRoute] Guid id)
         {
@@ -84,10 +102,38 @@ namespace MovieReservationSystem.Controllers
             return Ok(movieDto);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllMovies()
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteMovie([FromRoute] Guid id)
         {
-            var movies = await _moviesRepository.GetAllMoviesAsync();
+            var movie = await _moviesRepository.GetMovieByIdAsync(id);
+            if(movie is null) return NotFound();
+
+            var IsSuccess = await _moviesRepository.DeleteMovieAsync(movie);
+            if(IsSuccess)
+            {
+                await _unitOfWork.SaveChangesAsync();
+                return NoContent();
+            }
+
+            return BadRequest("Movie Deletion Failed");
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> GetAllMovies([FromQuery] string? genreName = "")
+        {
+            Genre? genre = null;
+            if (!string.IsNullOrWhiteSpace(genreName))
+            {
+                genre = await _moviesRepository.GetGenreByNameAsync(genreName);
+
+                if(genre is null)
+                {
+                    return BadRequest("This genre doesn't exist");
+                }
+            }
+
+            var movies = await _moviesRepository.GetAllMoviesAsync(genre == null ? null : genre.Id);
 
             var movieDtos = new List<MovieDto>();
             foreach(var movie in movies)
@@ -101,7 +147,8 @@ namespace MovieReservationSystem.Controllers
                     PhotoUrl = viewUrl,
                     ReleaseDate = movie.ReleaseDate,
                     Description = movie.Description,
-                    Duration = movie.Duration
+                    Duration = movie.Duration,
+                    genre = movie.genre == null ? "" : movie.genre.Name
                 };
 
                 movieDtos.Add(movieDto);
@@ -109,7 +156,8 @@ namespace MovieReservationSystem.Controllers
             return Ok(movieDtos);
         }
 
-        [HttpPost("showtime")]
+        [Authorize(Roles = "Admin")]
+        [HttpPost("/api/showtime")]
         public async Task<IActionResult> AddShowTime([FromBody] CreateShowTimeRequest request)
         {
             if (!ModelState.IsValid)
@@ -159,7 +207,8 @@ namespace MovieReservationSystem.Controllers
             return Created();
         }
         
-        [HttpGet("showtime")]
+        [Authorize]
+        [HttpGet("/api/showtime")]
         public async Task<IActionResult> GetShowTimesByDate([FromQuery] int year, [FromQuery] int month, [FromQuery] int day)
         {
             if (!ModelState.IsValid)
@@ -191,6 +240,153 @@ namespace MovieReservationSystem.Controllers
             }
 
             return Ok(showTimes);
+        }
+
+        [Authorize]
+        [HttpGet("/api/showtime/{showTimeId:guid}")]
+        public async Task<IActionResult> GetShowTimeReservationById([FromRoute] Guid showTimeId)
+        {
+            var showTime = await _moviesRepository.GetShowTimeById(showTimeId);
+            if (showTime is null)
+            {
+                return NotFound("Showtime not found.");
+            }
+
+            var hall = await _hallRepository.GetHallByIdAsync(showTime.hallId);
+            if (hall is null)
+            {
+                return NotFound("Hall not found.");
+            }
+
+            var BookedSeatsIds = await _hallRepository.GetReservedSeatsByShowTimeId(showTimeId);
+            var bookedSeats = await _hallRepository.GetSeatsByIdsAsync(BookedSeatsIds);
+            
+            var availableSeats = hall.seats!.Where(s => !BookedSeatsIds.Contains(s.Id)).ToList();
+            var bookedSeatsDto = bookedSeats.Select(s => new SeatDto
+            {
+                Id = s.Id,
+                row = s.row,
+                column = s.column,
+                hallId = s.hallId
+            }).ToList();
+
+            var availableSeatsDto = availableSeats.Select(s => new SeatDto
+            {
+                Id = s.Id,
+                row = s.row,
+                column = s.column,
+                hallId = s.hallId
+            }).ToList();
+            
+            return Ok(new HallReservationMap
+            {
+                Booked = bookedSeatsDto,
+                Available = availableSeatsDto
+            });
+        }
+
+        [Authorize]
+        [HttpPost("/api/showtime/{ShowTimeId:guid}")]
+        public async Task<IActionResult> MakeReservation([FromBody] MakeReservationRequest request, [FromRoute] Guid ShowTimeId)
+        {
+            
+            if(_currentUser.Id is null)
+            {
+                return Unauthorized("User is not authenticated.");
+            }
+
+            var user = await _userManager.FindByIdAsync(_currentUser.Id);
+            if (user is null)
+            {
+                return Unauthorized("User not found.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            } 
+
+            var SeatIds = request.SeatIds?.Split(',').Select(Guid.Parse).ToList();
+            if (SeatIds is null || !SeatIds.Any())
+            {
+                return BadRequest("No seat IDs provided.");
+            }
+
+            var dublicateReservation = await _hallRepository.GetReservationByIdempotencyKey(request.IdempotencyKey);
+            if (dublicateReservation is not null)
+            {
+                return Conflict("A reservation with the same idempotency key already exists.");
+            }
+
+            var showTimeExists = await _moviesRepository.GetShowTimeById(ShowTimeId);
+            if (showTimeExists is null)
+            {
+                return NotFound("Showtime not found.");
+            }
+
+            if(DateTime.UtcNow.CompareTo(showTimeExists.startTime) >= 0)
+            {
+                return BadRequest("Cannot make a reservation for a showtime that has already started.");
+            }
+
+            var seats = await _hallRepository.GetSeatsByIdsAsync(SeatIds);
+            if(seats.Count != SeatIds.Count)
+            {
+                return NotFound("One or more seats not found.");
+            }
+
+            var ConflictingReservation = await _hallRepository.GetReservationByShowTimeIdAndSeatIdsAsync(ShowTimeId, SeatIds);
+            if (ConflictingReservation is not null)
+            {
+                return Conflict("one or more seats is already reserved for the specified showtime.");
+            }
+
+            if(user.Balance < showTimeExists.ticketCost * SeatIds.Count)
+            {
+                return BadRequest("Insufficient balance to make the reservation.");
+            }
+            
+            List<Reservation> reservations = new List<Reservation>();
+            foreach(var seat in seats)
+            {
+                var reservation = new Reservation
+                {
+                    seatId = seat.Id,
+                    ShowTimeId = ShowTimeId,
+                    IdempotencyKey = request.IdempotencyKey,
+                    userId = Guid.Parse(_currentUser.Id),
+                    status = Enums.ReservationStatus.Confirmed,
+                    totalAmount = showTimeExists.ticketCost
+                };
+
+                reservations.Add(reservation);
+            }
+            
+            user.Balance -= showTimeExists.ticketCost * SeatIds.Count;
+            await _hallRepository.AddReservations(reservations);
+            await _unitOfWork.SaveChangesAsync();
+            
+            return Created();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("/api/genre")]
+        public async Task<IActionResult> AddGenre([FromBody] CreateGenreRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var genre = new Genre
+            {
+                Name = request.GenreName
+            };
+
+            await _moviesRepository.AddGenreAsync(genre);
+
+            await _unitOfWork.SaveChangesAsync();
+            return Created();
         }
     }
 }

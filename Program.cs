@@ -1,9 +1,11 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MovieReservationSystem.Helpers;
 using MovieReservationSystem.Interfaces;
 using MovieReservationSystem.Models;
 using MovieReservationSystem.Models.CloudStorage;
@@ -75,7 +77,8 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = JwtSettings["Issuer"],
         ValidAudience = JwtSettings["Audience"],
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(JwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey is not configured in appsettings.json")))
+            System.Text.Encoding.UTF8.GetBytes(JwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey is not configured in appsettings.json"))),
+        RoleClaimType = ClaimTypes.Role
     };
 });
 
@@ -94,6 +97,24 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddAuthorization();
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<appDbContext>();
+        var userManager = services.GetRequiredService<UserManager<AppUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        await AppDbInitilizer.InitializeAsync(context, userManager, roleManager);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding Identity data.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -13,11 +13,12 @@ namespace MovieReservationSystem.Requests
         [Required]
         [MaxLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
         public string Description { get; set; } = "";
-        public string? Genre { get; set; } = "";
         [Required]
         [DataType(DataType.Date)]
-        public DateTime ReleaseDate { get; set; }
+        public DateOnly ReleaseDate { get; set; }
         [Required]
         public int Duration { get; set; }
+        [Required]
+        public string genre{ get; set; } = "";
     }
 }
